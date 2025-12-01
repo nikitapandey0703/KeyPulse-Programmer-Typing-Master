@@ -8,13 +8,13 @@ const TypingTest = () => {
       <div className="flex justify-evenly w-1/2">
         <NavLink to="/with-timer">
           <Button
-            name="WITH TIMER"
+            name="Programmer"
             className="w-70 h-24 rounded-2xl flex justify-center content-center hover:scale-105 duration-300 items-center"
           />
         </NavLink>
         <NavLink to="/without-timer">
           <Button
-            name="WITH OUT TIMER"
+            name="Beginner"
             className="w-70 h-24 rounded-2xl hover:scale-105 duration-300 flex justify-center content-center items-center"
           />
         </NavLink>
