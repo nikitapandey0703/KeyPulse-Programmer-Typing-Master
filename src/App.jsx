@@ -21,19 +21,25 @@ function App() {
 
   return (
     <>
-     
-      {location.pathname !== "/with-timer" && <NavBar/>}
-    
+      {location.pathname !== "/programmer" &&
+        location.pathname !== "/beginner" && <NavBar />}
+
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/typing-test" element={<TypingTest />} />
-        <Route path="/with-timer" element={<WithTimer />} />
-        <Route path="/without-timer" element={<WithOutTimer />} />
+        <Route path="/programmer" element={<WithTimer />} />
+        <Route path="/beginner" element={<WithOutTimer />} />
         <Route />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
       </Routes>
+      {/* <Routes>
+        <Route path="/" element={<TypingTest />}>
+          <Route path='/programmer' element={<WithTimer/>}/>
+            <Route path='/beginner' element={<WithOutTimer/>}/>
+        </Route>
+      </Routes> */}
     </>
   );
 }
