@@ -1,11 +1,17 @@
-import React, { useState } from "react";
+import  { useState } from "react";
 import { NavLink } from "react-router-dom";
-import Button from "./Button";
+
 import { IoMenu, IoClose } from "react-icons/io5";
 import { IoIosArrowDown } from "react-icons/io";
+import AuthDialog from "./auth/AuthDialog";
+import { Button } from "./ui/button";
+
+
 
 const NavBar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState("login"); // login | signup
 
   const navItems = [
     { name: "Home", path: "/" },
@@ -41,15 +47,24 @@ const NavBar = () => {
       <div className="hidden md:flex gap-4">
         {/* No need for isActive here */}
         <Button
-          name="Sign up"
-          className="bg-[#068a8d] text-white px-4 py-2 rounded-md"
-        />
+          className="bg-[#068a8d] text-white text-md px-8 py-2 rounded-md"
+          onClick={() => {
+            setAuthMode("signup");
+            setAuthOpen(true);
+          }}
+        >
+          Sign up
+        </Button>
 
         <Button
-          name="Sign in"
-          icon={<IoIosArrowDown className="ml-2" />}
-          className="bg-transparent border border-white px-4 py-2 rounded-md"
-        />
+          className="bg-transparent border border-white text-md text-white px-8 py-2 rounded-md"
+          onClick={() => {
+            setAuthMode("login");
+            setAuthOpen(true);
+          }}
+        >
+          Sign in
+        </Button>
       </div>
 
       {/* Hamburger Icon */}
@@ -60,7 +75,7 @@ const NavBar = () => {
       </div>
 
       {/* Mobile Sidebar */}
-      {isOpen && (
+      {/* {isOpen && (
         <div className="absolute top-full left-0 w-full bg-black flex flex-col gap-6 p-6 md:hidden z-50">
           {navItems.map((item) => (
             <NavLink
@@ -79,14 +94,30 @@ const NavBar = () => {
             <Button
               name="Sign in"
               className="bg-transparent border px-4 py-2 rounded-md"
+              onClick={() => {
+                setAuthMode("login");
+                setAuthOpen(true);
+                setIsOpen(false);
+              }}
             />
+
             <Button
               name="Sign up"
               className="bg-[#068a8d] px-4 py-2 rounded-md"
+              onClick={() => {
+                setAuthMode("signup");
+                setAuthOpen(true);
+                setIsOpen(false);
+              }}
             />
           </div>
         </div>
-      )}
+      )} */}
+      <AuthDialog
+        open={authOpen}
+        onOpenChange={setAuthOpen}
+        defaultMode={authMode}
+      />
     </nav>
   );
 };

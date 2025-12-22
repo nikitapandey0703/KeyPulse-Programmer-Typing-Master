@@ -20,7 +20,7 @@ function App() {
 
 
   return (
-    <>
+    <div className="min-h-screen bg-[#071416]">
       {location.pathname !== "/programmer" &&
         location.pathname !== "/beginner" && <NavBar />}
 
@@ -40,7 +40,7 @@ function App() {
             <Route path='/beginner' element={<WithOutTimer/>}/>
         </Route>
       </Routes> */}
-    </>
+    </div>
   );
 }
 
