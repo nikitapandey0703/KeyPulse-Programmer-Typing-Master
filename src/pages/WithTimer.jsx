@@ -64,6 +64,8 @@ const WithTimer = () => {
           <TypingArea
             problem={filteredProblem}
             refreshProblem={refreshProblem}
+            language={selectedLang}
+            difficulty={selectedDifficulty}
           />
         )}
       </div>

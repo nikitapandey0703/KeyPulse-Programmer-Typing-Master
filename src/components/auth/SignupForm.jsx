@@ -9,18 +9,94 @@ export default function SignupForm({ onOtpSent }) {
     email: "",
     password: "",
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    // Clear error when user starts typing
+    if (error) setError("");
   };
 
-  const handleSendOtp = (e) => {
+  // Check if all fields are filled
+  const isFormValid = () => {
+    return (
+      formData.username.trim() !== "" &&
+      formData.email.trim() !== "" &&
+      formData.password.trim() !== ""
+    );
+  };
+
+  const handleSendOtp = async (e) => {
     e.preventDefault();
+    setError("");
 
-    console.log("Signup data:", formData);
+    if (!isFormValid()) {
+      setError("Please fill all fields");
+      return;
+    }
 
-    // call parent → opens OTP dialog
-    onOtpSent(formData);
+    setIsLoading(true);
+
+    try {
+      const requestBody = {
+        email: formData.email,
+      };
+
+      console.log("Sending OTP request:", requestBody);
+
+      const response = await fetch(
+        "https://expense-tracker-api-sable.vercel.app/auth/send_otp/signup",
+        {
+          method: "POST",
+          mode: "cors",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": "3a02e96a68d333b8f2f75d1ef5bb884c65123766",
+          },
+          body: JSON.stringify(requestBody),
+        }
+      );
+
+      console.log("Response status:", response.status);
+      console.log("Response headers:", response.headers);
+
+      // Check if response is JSON
+      const contentType = response.headers.get("content-type");
+      let data;
+
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        console.log("Non-JSON response:", text);
+        throw new Error("Server returned non-JSON response");
+      }
+
+      console.log("Response data:", data);
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || data.error || `Server error: ${response.status}`
+        );
+      }
+
+      console.log("OTP sent successfully:", data);
+
+      // call parent → opens OTP dialog
+      onOtpSent(formData);
+    } catch (err) {
+      console.error("Error sending OTP:", err);
+      if (err.name === "TypeError" && err.message.includes("fetch")) {
+        setError("Network error: Failed to connect to server. Please check your internet connection.");
+      } else {
+        setError(
+          err.message || "Failed to send OTP. Please try again."
+        );
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -31,6 +107,7 @@ export default function SignupForm({ onOtpSent }) {
           name="username"
           value={formData.username}
           onChange={handleChange}
+          placeholder="Enter your username e.g., John Doe"
         />
       </div>
 
@@ -40,6 +117,7 @@ export default function SignupForm({ onOtpSent }) {
           type="email"
           name="email"
           value={formData.email}
+          placeholder="Enter your email"
           onChange={handleChange}
         />
       </div>
@@ -50,12 +128,21 @@ export default function SignupForm({ onOtpSent }) {
           type="password"
           name="password"
           value={formData.password}
+          placeholder="Enter your password"
           onChange={handleChange}
         />
       </div>
 
-      <Button type="submit" className="w-full mt-4">
-        Send OTP
+      {error && (
+        <div className="text-sm text-red-600 mt-2">{error}</div>
+      )}
+
+      <Button
+        type="submit"
+        className="w-full mt-4"
+        disabled={!isFormValid() || isLoading}
+      >
+        {isLoading ? "Sending OTP..." : "Send OTP"}
       </Button>
     </form>
   );

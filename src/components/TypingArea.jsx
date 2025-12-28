@@ -204,7 +204,7 @@
 // export default TypingPractice;
 import { useState, useRef, useEffect } from "react";
 
-const TypingArea = ({ problem, refreshProblem }) => {
+const TypingArea = ({ problem, refreshProblem, language, difficulty }) => {
   const [userInput, setUserInput] = useState("");
   const [time, setTime] = useState(0);
   const [isTyping, setIsTyping] = useState(false);
@@ -240,10 +240,54 @@ const TypingArea = ({ problem, refreshProblem }) => {
     setUserInput(e.target.value);
   };
 
+  // Save test result to localStorage
+  const saveTestResult = (testData) => {
+    try {
+      const savedTests = localStorage.getItem('typingTestHistory');
+      const tests = savedTests ? JSON.parse(savedTests) : [];
+      
+      // Add new test result at the beginning
+      tests.unshift({
+        ...testData,
+        date: new Date().toISOString(),
+      });
+      
+      // Keep only last 100 tests
+      const limitedTests = tests.slice(0, 100);
+      localStorage.setItem('typingTestHistory', JSON.stringify(limitedTests));
+    } catch (err) {
+      console.error("Error saving test result:", err);
+    }
+  };
+
   // Handle Enter key press (finish typing)
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       setIsTyping(false); // Stop timer
+      
+      // Calculate final stats
+      const finalErrors = userInput
+        .split("")
+        .reduce((acc, char, i) => (char !== problem.problem[i] ? acc + 1 : acc), 0);
+      const wordsTyped = userInput.trim().split(/\s+/).length;
+      const finalWPM = time > 0 ? Math.round((wordsTyped / time) * 60) : 0;
+      const finalAccuracy =
+        userInput.length > 0
+          ? Math.round(((userInput.length - finalErrors) / userInput.length) * 100)
+          : 100;
+      
+      // Save test result
+      saveTestResult({
+        language: language || problem?.lang || "Unknown",
+        difficulty: difficulty || problem?.difficulty || "Unknown",
+        problemName: problem?.name || "Unknown",
+        time: time,
+        wpm: finalWPM,
+        accuracy: finalAccuracy,
+        errors: finalErrors,
+        progress: Math.round((userInput.length / problem.problem.length) * 100),
+      });
+      
       setShowPopup(true); // Show popup
     }
   };

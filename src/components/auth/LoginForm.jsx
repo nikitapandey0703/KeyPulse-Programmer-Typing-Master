@@ -13,6 +13,8 @@ export default function LoginForm({ onLogin }) {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    // Clear error when user starts typing
+    if (error) setError("");
   };
 
   const handleSubmit = async (e) => {
@@ -20,30 +22,90 @@ export default function LoginForm({ onLogin }) {
     setError("");
     setLoading(true);
 
-    // TEMP frontend logic (backend later)
-    console.log("Login attempt:", formData);
-
-    // Fake delay for testing
-    setTimeout(() => {
+    // Validate form
+    if (!formData.emailOrUsername?.trim() || !formData.password?.trim()) {
+      setError("Please fill all fields");
       setLoading(false);
-      if (formData.password === "") {
-        setError("Password cannot be empty");
-      } else {
-        onLogin?.(formData); // call parent handler if exists
+      return;
+    }
+
+    try {
+      // Create FormData object
+      const formDataToSend = new FormData();
+      formDataToSend.append("email", formData.emailOrUsername.trim());
+      formDataToSend.append("password", formData.password.trim());
+
+      console.log("Sending login request with FormData");
+
+      const response = await fetch(
+        "https://expense-tracker-api-sable.vercel.app/auth/signin",
+        {
+          method: "POST",
+          mode: "cors",
+          headers: {
+            "x-api-key": "3a02e96a68d333b8f2f75d1ef5bb884c65123766",
+            // Don't set Content-Type header - browser will set it automatically with boundary for FormData
+          },
+          body: formDataToSend,
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Handle Pydantic validation errors (validation_error.form_params structure)
+        if (data.validation_error?.form_params && Array.isArray(data.validation_error.form_params)) {
+          const validationErrors = data.validation_error.form_params
+            .map((err) => {
+              const field = err.loc && err.loc.length > 0 ? err.loc[err.loc.length - 1] : "field";
+              return `${field}: ${err.msg}`;
+            })
+            .join(", ");
+          throw new Error(validationErrors || "Validation error");
+        }
+        
+        // Handle standard error responses
+        throw new Error(
+          data.message || data.error || data.detail?.message || "Login failed"
+        );
       }
-    }, 1000);
+
+      console.log("Login successful:", data);
+
+      // Store auth data in localStorage
+      const authData = {
+        token: data.token || data.access_token || null,
+        email: formData.emailOrUsername.trim(),
+        userData: data,
+      };
+      localStorage.setItem('authData', JSON.stringify(authData));
+
+      // Call parent handler on success
+      onLogin?.(data);
+    } catch (err) {
+      console.error("Error:", err);
+      if (err.name === "TypeError" && err.message.includes("fetch")) {
+        setError("Network error: Failed to connect to server. Please check your internet connection.");
+      } else {
+        setError(err.message || "Failed to login. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
       {/* Email / Username */}
       <div className="space-y-1">
-        <Label>Email or Username</Label>
+        <Label>Email</Label>
         <Input
+          type="email"
           name="emailOrUsername"
           value={formData.emailOrUsername}
           onChange={handleChange}
-          placeholder="Enter your email or username"
+          placeholder="Enter your email"
+          required
         />
       </div>
 
@@ -56,14 +118,21 @@ export default function LoginForm({ onLogin }) {
           value={formData.password}
           onChange={handleChange}
           placeholder="Enter your password"
+          required
         />
       </div>
 
       {/* Error */}
-      {error && <p className="text-red-500 text-sm">{error}</p>}
+      {error && (
+        <div className="text-sm text-red-600 mt-2">{error}</div>
+      )}
 
       {/* Submit */}
-      <Button type="submit" className="w-full mt-4" disabled={loading}>
+      <Button
+        type="submit"
+        className="w-full mt-4"
+        disabled={loading || !formData.emailOrUsername?.trim() || !formData.password?.trim()}
+      >
         {loading ? "Logging in..." : "Login"}
       </Button>
     </form>

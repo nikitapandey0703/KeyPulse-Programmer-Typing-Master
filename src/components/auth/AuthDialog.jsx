@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,9 +16,30 @@ export default function AuthDialog({ open, onOpenChange, defaultMode }) {
   const [signupStep, setSignupStep] = useState("form");
   const [signupData, setSignupData] = useState(null);
 
+  // Update isLogin when dialog opens with a different defaultMode
+  useEffect(() => {
+    if (open) {
+      setIsLogin(defaultMode === "login");
+      setSignupStep("form");
+      setSignupData(null);
+    }
+  }, [open, defaultMode]);
+
   const handleOtpSent = (data) => {
     setSignupData(data);
     setSignupStep("otp");
+  };
+
+  const handleOtpVerified = () => {
+    // Close dialog and switch to login mode
+    setSignupStep("form");
+    setSignupData(null);
+    setIsLogin(true);
+  };
+
+  const handleLoginSuccess = (data) => {
+    // Close dialog on successful login
+    onOpenChange(false);
   };
 
   return (
@@ -47,7 +68,7 @@ export default function AuthDialog({ open, onOpenChange, defaultMode }) {
         </DialogHeader>
 
         {/* 🔹 LOGIN */}
-        {isLogin && <LoginForm />}
+        {isLogin && <LoginForm onLogin={handleLoginSuccess} />}
 
         {/* 🔹 SIGNUP FORM */}
         {!isLogin && signupStep === "form" && (
@@ -56,7 +77,11 @@ export default function AuthDialog({ open, onOpenChange, defaultMode }) {
 
         {/* 🔹 OTP FORM */}
         {!isLogin && signupStep === "otp" && signupData && (
-          <OtpForm email={signupData.email} />
+          <OtpForm
+            email={signupData.email}
+            signupData={signupData}
+            onOtpVerified={handleOtpVerified}
+          />
         )}
 
         {/* 🔹 SWITCH LOGIN / SIGNUP */}

@@ -50,6 +50,8 @@ const WithoutTimer = () => {
           <TypingArea
             problem={filteredProblem}
             refreshProblem={refreshProblem}
+            language="English"
+            difficulty={selectedDifficulty}
           />
         )}
       </div>
