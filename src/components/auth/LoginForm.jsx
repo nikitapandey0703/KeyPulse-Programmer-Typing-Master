@@ -35,15 +35,14 @@ export default function LoginForm({ onLogin }) {
       formDataToSend.append("email", formData.emailOrUsername.trim());
       formDataToSend.append("password", formData.password.trim());
 
-      console.log("Sending login request with FormData");
-
       const response = await fetch(
-        "https://expense-tracker-api-sable.vercel.app/auth/signin",
+        `${import.meta.env.VITE_API_BASE_URL}/auth/signin`,
         {
           method: "POST",
           mode: "cors",
+          credentials: 'include',
           headers: {
-            "x-api-key": "3a02e96a68d333b8f2f75d1ef5bb884c65123766",
+            "x-api-key": import.meta.env.VITE_API_KEY,
             // Don't set Content-Type header - browser will set it automatically with boundary for FormData
           },
           body: formDataToSend,
@@ -70,8 +69,6 @@ export default function LoginForm({ onLogin }) {
         );
       }
 
-      console.log("Login successful:", data);
-
       // Store auth data in localStorage
       const authData = {
         token: data.token || data.access_token || null,
@@ -83,7 +80,6 @@ export default function LoginForm({ onLogin }) {
       // Call parent handler on success
       onLogin?.(data);
     } catch (err) {
-      console.error("Error:", err);
       if (err.name === "TypeError" && err.message.includes("fetch")) {
         setError("Network error: Failed to connect to server. Please check your internet connection.");
       } else {

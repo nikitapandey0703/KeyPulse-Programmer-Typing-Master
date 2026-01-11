@@ -40,6 +40,8 @@ export default function AuthDialog({ open, onOpenChange, defaultMode }) {
   const handleLoginSuccess = (data) => {
     // Close dialog on successful login
     onOpenChange(false);
+    // Dispatch custom event to notify NavBar and other components about auth change
+    window.dispatchEvent(new Event('authChanged'));
   };
 
   return (

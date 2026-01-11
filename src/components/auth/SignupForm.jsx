@@ -43,23 +43,18 @@ export default function SignupForm({ onOtpSent }) {
         email: formData.email,
       };
 
-      console.log("Sending OTP request:", requestBody);
-
       const response = await fetch(
-        "https://expense-tracker-api-sable.vercel.app/auth/send_otp/signup",
+        `${import.meta.env.VITE_API_BASE_URL}/auth/send_otp/signup`,
         {
           method: "POST",
           mode: "cors",
           headers: {
             "Content-Type": "application/json",
-            "x-api-key": "3a02e96a68d333b8f2f75d1ef5bb884c65123766",
+            "x-api-key": import.meta.env.VITE_API_KEY,
           },
           body: JSON.stringify(requestBody),
         }
       );
-
-      console.log("Response status:", response.status);
-      console.log("Response headers:", response.headers);
 
       // Check if response is JSON
       const contentType = response.headers.get("content-type");
@@ -69,11 +64,8 @@ export default function SignupForm({ onOtpSent }) {
         data = await response.json();
       } else {
         const text = await response.text();
-        console.log("Non-JSON response:", text);
         throw new Error("Server returned non-JSON response");
       }
-
-      console.log("Response data:", data);
 
       if (!response.ok) {
         throw new Error(
@@ -81,12 +73,9 @@ export default function SignupForm({ onOtpSent }) {
         );
       }
 
-      console.log("OTP sent successfully:", data);
-
       // call parent → opens OTP dialog
       onOtpSent(formData);
     } catch (err) {
-      console.error("Error sending OTP:", err);
       if (err.name === "TypeError" && err.message.includes("fetch")) {
         setError("Network error: Failed to connect to server. Please check your internet connection.");
       } else {

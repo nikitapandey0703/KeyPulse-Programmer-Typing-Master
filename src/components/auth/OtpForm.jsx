@@ -22,13 +22,13 @@ export default function OtpForm({ email, signupData, onOtpVerified }) {
     try {
       // Step 1: Verify OTP
       const verifyResponse = await fetch(
-        "https://expense-tracker-api-sable.vercel.app/auth/verify_otp",
+        `${import.meta.env.VITE_API_BASE_URL}/auth/verify_otp`,
         {
           method: "POST",
           mode: "cors",
           headers: {
             "Content-Type": "application/json",
-            "x-api-key": "3a02e96a68d333b8f2f75d1ef5bb884c65123766",
+            "x-api-key": import.meta.env.VITE_API_KEY,
           },
           body: JSON.stringify({
             email: email,
@@ -45,18 +45,16 @@ export default function OtpForm({ email, signupData, onOtpVerified }) {
         );
       }
 
-      console.log("OTP verified successfully:", verifyData);
-
       // Step 2: If OTP verification is successful (200), call signup API
       if (signupData) {
         const signupResponse = await fetch(
-          "https://expense-tracker-api-sable.vercel.app/auth/signup",
+          `${import.meta.env.VITE_API_BASE_URL}/auth/signup`,
           {
             method: "POST",
             mode: "cors",
             headers: {
               "Content-Type": "application/json",
-              "x-api-key": "3a02e96a68d333b8f2f75d1ef5bb884c65123766",
+              "x-api-key": import.meta.env.VITE_API_KEY,
             },
             body: JSON.stringify({
               email: signupData.email,
@@ -75,14 +73,11 @@ export default function OtpForm({ email, signupData, onOtpVerified }) {
               "Signup failed"
           );
         }
-
-        console.log("Signup successful:", signupDataResponse);
       }
 
       // Step 3: Close OTP dialog and open login form
       onOtpVerified();
     } catch (err) {
-      console.error("Error:", err);
       if (err.name === "TypeError" && err.message.includes("fetch")) {
         setError("Network error: Failed to connect to server. Please check your internet connection.");
       } else {

@@ -203,11 +203,13 @@
 
 // export default TypingPractice;
 import { useState, useRef, useEffect } from "react";
+import { Pause, Play } from "lucide-react";
 
 const TypingArea = ({ problem, refreshProblem, language, difficulty }) => {
   const [userInput, setUserInput] = useState("");
   const [time, setTime] = useState(0);
   const [isTyping, setIsTyping] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const inputRef = useRef(null);
 
@@ -216,28 +218,53 @@ const TypingArea = ({ problem, refreshProblem, language, difficulty }) => {
     setUserInput("");
     setTime(0);
     setIsTyping(false);
+    setIsPaused(false);
     setShowPopup(false);
 
-    setTimeout(() => {
-      if (inputRef.current) inputRef.current.focus();
-    }, 0);
+    // Focus input after component updates
+    const timer = setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, [problem]);
+
+  // Focus input when clicking on typing area
+  const handleTypingAreaClick = () => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  };
 
   // Timer effect
   useEffect(() => {
-    if (!isTyping) return;
+    if (!isTyping || isPaused) return;
 
     const interval = setInterval(() => {
       setTime((prev) => prev + 1);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isTyping]);
+  }, [isTyping, isPaused]);
 
   // Handle typing
   const handleChange = (e) => {
+    if (isPaused) return; // Prevent typing when paused
     if (!isTyping) setIsTyping(true);
     setUserInput(e.target.value);
+  };
+
+  // Toggle pause/resume
+  const handlePauseResume = () => {
+    setIsPaused((prev) => !prev);
+    // Focus input after toggling pause/resume
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    }, 0);
   };
 
   // Save test result to localStorage
@@ -256,12 +283,23 @@ const TypingArea = ({ problem, refreshProblem, language, difficulty }) => {
       const limitedTests = tests.slice(0, 100);
       localStorage.setItem('typingTestHistory', JSON.stringify(limitedTests));
     } catch (err) {
-      console.error("Error saving test result:", err);
+      // Error saving test result - silently fail
     }
   };
 
   // Handle Enter key press (finish typing)
   const handleKeyDown = (e) => {
+    if (isPaused && e.key !== "Escape") return; // Prevent actions when paused (except Escape)
+    
+    // Allow Escape key to resume when paused
+    if (isPaused && e.key === "Escape") {
+      setIsPaused(false);
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+      return;
+    }
+
     if (e.key === "Enter") {
       setIsTyping(false); // Stop timer
       
@@ -314,6 +352,17 @@ const TypingArea = ({ problem, refreshProblem, language, difficulty }) => {
       ? Math.round((userInput.length / problem.problem.length) * 100)
       : 0;
 
+  // Get message based on accuracy
+  const getCompletionMessage = (acc) => {
+    if (acc >= 75) {
+      return { text: "🎉 Congratulations! 🎉", color: "text-[#068a8d]" };
+    } else if (acc >= 50) {
+      return { text: "👍 Good! 👍", color: "text-green-500" };
+    } else {
+      return { text: "💪 Try to type faster! 💪", color: "text-orange-500" };
+    }
+  };
+
   // Render problem with highlights
   const renderText = () =>
     problem.problem.split("").map((char, index) => {
@@ -332,58 +381,98 @@ const TypingArea = ({ problem, refreshProblem, language, difficulty }) => {
     });
 
   return (
-    <div className="flex flex-col h-screen w-full items-center p-6 relative overflow-hidden">
-      {/* Problem Title */}
-      <h2 className="text-2xl md:text-3xl font-extrabold mb-4 text-[#068a8d] text-center">
-        {problem.name}
-      </h2>
+    <div className="flex flex-col h-full w-full items-center p-6 relative overflow-hidden">
+      {/* Header Section - Fixed */}
+      <div className="flex-shrink-0 w-full max-w-4xl">
+        {/* Problem Title */}
+        <h2 className="text-2xl md:text-3xl font-extrabold mb-4 text-[#068a8d] text-center">
+          {problem.name}
+        </h2>
 
-      {/* Stats */}
-      <div className="flex gap-6 mb-2 text-white font-bold text-lg">
-        <div>Time: {time}s</div>
-        <div>WPM: {wpm}</div>
-        <div>Errors: {errors}</div>
-        <div>Accuracy: {accuracy}%</div>
-        <div>Progress: {progress}%</div>
+        {/* Stats */}
+        <div className="flex gap-6 mb-2 text-white font-bold text-lg flex-wrap justify-center">
+          <div>Time: {time}s</div>
+          <div>WPM: {wpm}</div>
+          <div>Errors: {errors}</div>
+          <div>Accuracy: {accuracy}%</div>
+          <div>Progress: {progress}%</div>
+        </div>
+
+        {/* Instruction message */}
+        <div
+          className="mb-4 text-gray-300 text-sm italic"
+          style={{
+           display: "flex",
+           alignItems: "center",
+           justifyContent: "center",
+          }}
+        >
+
+          After completing typing, press{" "}
+          <span className="text-[#068a8d] font-bold">Enter</span>
+        </div>
       </div>
 
-      {/* Instruction message */}
-      <div className="mb-4 text-gray-300 text-sm italic">
-        After completing typing, press{" "}
-        <span className="text-[#068a8d] font-bold">Enter</span>
-      </div>
-
-      {/* Typing Container */}
-      <div className="bg-[#0D1E2A] p-4 rounded-xl shadow-lg w-full max-w-4xl flex-1 overflow-y-auto scrollbar-hidden">
+      {/* Typing Container - Flexible with scroll */}
+      <div 
+        className={`relative bg-[#0D1E2A] p-4 rounded-xl shadow-lg w-full max-w-4xl flex-1 min-h-0 overflow-y-auto scrollbar-hidden cursor-text ${
+          isPaused ? "opacity-75" : ""
+        }`}
+        onClick={handleTypingAreaClick}
+      >
         <pre className="text-base md:text-lg leading-7 text-gray-300 whitespace-pre-wrap wrap-break-word font-mono">
           {renderText()}
         </pre>
+        {/* Hidden input - positioned relative to typing container */}
+        <input
+          ref={inputRef}
+          value={userInput}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          className="absolute inset-0 opacity-0 w-full h-full cursor-text"
+          autoFocus
+          tabIndex={0}
+          disabled={isPaused}
+        />
       </div>
 
-      {/* Hidden input */}
-      <input
-        ref={inputRef}
-        value={userInput}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-        className="absolute inset-0 opacity-0 pointer-events-none"
-        autoFocus
-      />
-
-      {/* Refresh Button */}
-      <button
-        onClick={refreshProblem}
-        className="mt-4 px-6 py-2 bg-[#068a8d] hover:bg-[#036b6dd7] text-white font-bold rounded-md shadow-lg transition-all duration-200"
-      >
-        Refresh Problem
-      </button>
+      {/* Button Container - Fixed at bottom */}
+      <div className="mt-4 flex items-center justify-between w-full max-w-4xl gap-4 flex-shrink-0">
+        {/* Refresh Button */}
+        <button
+          onClick={refreshProblem}
+          className="px-6 py-2 bg-[#068a8d] hover:bg-[#036b6dd7] text-white font-bold rounded-md shadow-lg transition-all duration-200"
+        >
+          Refresh Problem
+        </button>
+        
+        {/* Pause/Resume Button */}
+        {isTyping && (
+          <button
+            onClick={handlePauseResume}
+            className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-md shadow-lg transition-all duration-200 flex items-center gap-2"
+          >
+            {isPaused ? (
+              <>
+                <Play className="w-4 h-4" />
+                Resume
+              </>
+            ) : (
+              <>
+                <Pause className="w-4 h-4" />
+                Pause
+              </>
+            )}
+          </button>
+        )}
+      </div>
 
       {/* Completion Popup */}
       {showPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-90 z-50">
           <div className="bg-[#071416] rounded-xl shadow-lg p-6 w-11/12 max-w-5xl text-center">
-            <h2 className="text-3xl font-extrabold text-[#068a8d] mb-6">
-              🎉 Congratulations! 🎉
+            <h2 className={`text-3xl font-extrabold mb-6 ${getCompletionMessage(accuracy).color}`}>
+              {getCompletionMessage(accuracy).text}
             </h2>
 
             <div className="flex flex-wrap justify-center gap-4 mb-6">

@@ -43,7 +43,7 @@ export default function OtpDialog({ open, onClose }) {
         onClose();
       })
       .catch((err) => {
-        console.error(err.message);
+        // Error verifying OTP - silently fail
       });
   };
 

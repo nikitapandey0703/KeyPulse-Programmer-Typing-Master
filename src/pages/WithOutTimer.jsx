@@ -38,6 +38,7 @@ const WithoutTimer = () => {
       <SideNavBar
         showLanguage={false} // 🔥 Beginner mode
         userSelectedDiffLevel={setSelectedDifficulty}
+        selectedDiffLevel={selectedDifficulty}
       />
 
       {/* Typing Area */}

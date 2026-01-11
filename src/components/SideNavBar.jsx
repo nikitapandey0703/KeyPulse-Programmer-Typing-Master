@@ -1,9 +1,12 @@
 import React from "react";
+import { Check } from "lucide-react";
 
 const SideNavBar = ({
   showLanguage = true,
   userSelectedLang,
   userSelectedDiffLevel,
+  selectedLang = "",
+  selectedDiffLevel = "",
 }) => {
   const language = ["C++", "SQL", "Java", "JavaScript"];
   const difficulty = ["Easy", "Medium", "Hard"];
@@ -23,9 +26,14 @@ const SideNavBar = ({
             <button
               key={item}
               onClick={() => userSelectedLang(item)}
-              className="w-full text-left px-3 py-2 rounded hover:bg-gray-700 transition-all"
+              className={`w-full flex items-center justify-between px-3 py-2 rounded hover:bg-gray-700 transition-all ${
+                selectedLang === item ? "bg-gray-700/50" : ""
+              }`}
             >
-              {item}
+              <span>{item}</span>
+              {selectedLang === item && (
+                <Check className="w-4 h-4 text-green-400" />
+              )}
             </button>
           ))}
         </div>
@@ -41,9 +49,14 @@ const SideNavBar = ({
           <button
             key={item}
             onClick={() => userSelectedDiffLevel(item)}
-            className="w-full text-left px-3 py-2 rounded hover:bg-gray-700 transition-all"
+            className={`w-full flex items-center justify-between px-3 py-2 rounded hover:bg-gray-700 transition-all ${
+              selectedDiffLevel === item ? "bg-gray-700/50" : ""
+            }`}
           >
-            {item}
+            <span>{item}</span>
+            {selectedDiffLevel === item && (
+              <Check className="w-4 h-4 text-green-400" />
+            )}
           </button>
         ))}
       </div>

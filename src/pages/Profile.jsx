@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 const Profile = () => {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [testHistory, setTestHistory] = useState([]);
   const [stats, setStats] = useState({
     totalTests: 0,
@@ -14,65 +14,84 @@ const Profile = () => {
     totalErrors: 0,
   });
 
-  // Fetch user profile from API
+  // Load user profile and check authentication status
   useEffect(() => {
-    const fetchProfile = async () => {
+    const loadProfile = () => {
       try {
-        // Get auth data from localStorage
         const authDataStr = localStorage.getItem('authData');
+        
+        // Check if user is logged in
         if (!authDataStr) {
-          setError("Please login to view your profile");
+          setIsAuthenticated(false);
+          setUserProfile(null);
           setLoading(false);
           return;
         }
 
-        const authData = JSON.parse(authDataStr);
-        const email = authData.email;
-
-        if (!email) {
-          setError("Email not found. Please login again.");
-          setLoading(false);
-          return;
-        }
-
-        // Create FormData for the API request
-        const formData = new FormData();
-        formData.append("email", email);
-
-        const response = await fetch(
-          "https://expense-tracker-api-sable.vercel.app/auth/get_profile",
-          {
-            method: "POST",
-            mode: "cors",
-            headers: {
-              "x-api-key": "3a02e96a68d333b8f2f75d1ef5bb884c65123766",
-            },
-            body: formData,
+        try {
+          const authData = JSON.parse(authDataStr);
+          const email = authData.email;
+          const userData = authData.userData;
+          
+          // Verify login was successful by checking if userData exists
+          if (!userData || !email) {
+            setIsAuthenticated(false);
+            setUserProfile(null);
+            setLoading(false);
+            return;
           }
-        );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            data.message || data.error || "Failed to fetch profile"
-          );
+          
+          // Extract user information from stored data
+          // Username can be in userData.username, userData.name, or from signup
+          const username = userData.username || userData.name || userData.user?.username || userData.user?.name || "N/A";
+          
+          // Set profile data from localStorage
+          setUserProfile({
+            username: username,
+            email: email,
+          });
+          
+          setIsAuthenticated(true);
+        } catch (parseError) {
+          setIsAuthenticated(false);
+          setUserProfile(null);
         }
-
-        setUserProfile(data);
       } catch (err) {
-        console.error("Error fetching profile:", err);
-        setError(err.message || "Failed to load profile");
+        setIsAuthenticated(false);
+        setUserProfile(null);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProfile();
+    loadProfile();
+
+    // Listen for auth changes (when user logs in/out in other tabs or same tab)
+    window.addEventListener('storage', loadProfile);
+    window.addEventListener('authChanged', loadProfile);
+
+    return () => {
+      window.removeEventListener('storage', loadProfile);
+      window.removeEventListener('authChanged', loadProfile);
+    };
   }, []);
 
-  // Load test history from localStorage
+  // Load test history from localStorage only if user is authenticated
   useEffect(() => {
+    if (!isAuthenticated) {
+      // Reset stats and history if not authenticated
+      setTestHistory([]);
+      setStats({
+        totalTests: 0,
+        totalTime: 0,
+        avgWPM: 0,
+        avgAccuracy: 0,
+        bestWPM: 0,
+        totalErrors: 0,
+      });
+      return;
+    }
+
     const savedTests = localStorage.getItem('typingTestHistory');
     if (savedTests) {
       const tests = JSON.parse(savedTests);
@@ -95,9 +114,29 @@ const Profile = () => {
           bestWPM,
           totalErrors,
         });
+      } else {
+        // If no tests, keep stats at 0
+        setStats({
+          totalTests: 0,
+          totalTime: 0,
+          avgWPM: 0,
+          avgAccuracy: 0,
+          bestWPM: 0,
+          totalErrors: 0,
+        });
       }
+    } else {
+      // If no saved tests, keep stats at 0
+      setStats({
+        totalTests: 0,
+        totalTime: 0,
+        avgWPM: 0,
+        avgAccuracy: 0,
+        bestWPM: 0,
+        totalErrors: 0,
+      });
     }
-  }, []);
+  }, [isAuthenticated]);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -135,34 +174,27 @@ const Profile = () => {
           <p className="text-gray-400">View your profile and typing statistics</p>
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-500/20 border border-red-500 text-red-300 px-4 py-3 rounded-lg mb-6">
-            {error}
-          </div>
-        )}
-
         {/* User Info Card */}
         <div className="bg-[#0D1E2A] rounded-xl shadow-lg p-6 md:p-8 mb-6">
           <h2 className="text-2xl font-bold text-[#068a8d] mb-4">User Information</h2>
-          {userProfile ? (
+          {isAuthenticated && userProfile && typeof userProfile === 'object' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p className="text-gray-400 text-sm mb-1">Username</p>
                 <p className="text-white text-lg font-semibold">
-                  {userProfile.username || userProfile.name || "N/A"}
+                  {String(userProfile.username || userProfile.name || "N/A")}
                 </p>
               </div>
               <div>
                 <p className="text-gray-400 text-sm mb-1">Email</p>
                 <p className="text-white text-lg font-semibold">
-                  {userProfile.email || "N/A"}
+                  {String(userProfile.email || "N/A")}
                 </p>
               </div>
             </div>
           ) : (
             <div className="text-gray-400">
-              {error ? "Unable to load profile" : "No profile data available"}
+              Please login to view your profile information
             </div>
           )}
         </div>
@@ -205,7 +237,7 @@ const Profile = () => {
         {/* Test History */}
         <div className="bg-[#0D1E2A] rounded-xl shadow-lg p-6 md:p-8">
           <h2 className="text-2xl font-bold text-[#068a8d] mb-4">Recent Test History</h2>
-          {testHistory.length > 0 ? (
+          {isAuthenticated && testHistory.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
